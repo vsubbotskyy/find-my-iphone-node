@@ -1,7 +1,6 @@
 var icloud = require('find-my-iphone').findmyphone;
 
 module.exports = function (RED) {
-
   function FindMyIphone(config) {
     RED.nodes.createNode(this, config);
     var node = this;
@@ -12,9 +11,8 @@ module.exports = function (RED) {
     findMyPhone = icloud.findmyphone;
 
     this.on('input', function (msg) {
-      node.status({fill: "yellow", shape: "ring", text: "get device data..."});
+      node.status({fill: "yellow", shape: "ring", text: "getting device data..."});
       icloud.getDevices(function (err, devices) {
-
         // failed to get device information
         if (err || !devices) {
           node.error('Could not connect to icloud', err);
@@ -36,7 +34,6 @@ module.exports = function (RED) {
         setTimeout(function () {
           node.status({});
         }, 2000)
-
       });
     });
   }
