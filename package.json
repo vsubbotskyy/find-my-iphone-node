@@ -1,8 +1,9 @@
 {
-	"name": "node-red-find-my-iphone",
+	"name": "find-my-iphone",
 	"version": "1.0.0",
 	"description": "This is a node-red node to get the current locations and other metrics of connected Apple devices",
 	"main": "find-my-iphone.js",
+	"homepage": "https://github.com/vsubbotskyy/node-red-find-my-iphone",
 	"scripts": {
 		"test": "echo \"Error: no test specified\" && exit 1"
 	},
