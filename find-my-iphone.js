@@ -1,4 +1,4 @@
-var icloud = require('find-my-iphone').findmyphone;
+var icloud = require('./icloud');
 
 module.exports = function (RED) {
   function FindMyIphone(config) {

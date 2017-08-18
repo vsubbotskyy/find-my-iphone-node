@@ -1,28 +1,29 @@
 {
-	"name": "find-my-iphone-node",
-	"version": "1.0.1",
-	"description": "This is a node-red node to get the current locations and other metrics of connected Apple devices",
-	"main": "find-my-iphone.js",
-	"repository": {
-		"type": "git",
-		"url": "https://github.com/vsubbotskyy/find-my-iphone-node"
-	},
-	"scripts": {
-		"test": "echo \"Error: no test specified\" && exit 1"
-	},
-	"keywords": [
-		"node-red",
-		"iphone",
-		"apple",
-		"find my iphone"
-	],
-	"node-red": {
-		"nodes": {
-			"find-my-iphone": "find-my-iphone.js"
-		}
-	},
-	"license": "MIT",
-	"dependencies": {
-		"find-my-iphone": "1.1.1"
-	}
+  "name": "find-my-iphone-node",
+  "version": "1.0.2",
+  "description": "This is a node-red node to get the current locations and other metrics of connected Apple devices",
+  "main": "find-my-iphone.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/vsubbotskyy/find-my-iphone-node"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "node-red",
+    "iphone",
+    "apple",
+    "find my iphone"
+  ],
+  "node-red": {
+    "nodes": {
+      "find-my-iphone": "find-my-iphone.js"
+    }
+  },
+  "license": "MIT",
+  "dependencies": {
+    "request": "^2.81.0",
+    "util": "^0.10.3"
+  }
 }
