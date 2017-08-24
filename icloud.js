@@ -1,5 +1,6 @@
 var request = require("request");
 var util = require("util");
+var FileCookieStore = require("./fileCookieStore");
 
 var icloud = {
 	init: function(callback) {
@@ -11,10 +12,11 @@ var icloud = {
 			return callback("Please define apple_id / password");
 		}
 
-		var newLogin = !icloud.hasOwnProperty("jar");
-		if (newLogin) {
-			icloud.jar = request.jar();
-		}
+		var fileStore = new FileCookieStore('cookies.json', {
+			encrypt: true,
+			algorithm: 'aes-256-ctr'
+		});
+		icloud.jar = request.jar(fileStore);
 
 		icloud.iRequest = request.defaults({
 			jar: icloud.jar,
@@ -23,30 +25,24 @@ var icloud = {
 			}
 		});
 
-		if (newLogin) {
-			icloud.login(function(err, res, body) {
-				return callback(err, res, body);
-			});
-		} else {
+		icloud.checkSession(function(err, res, body) {
+			if (err) {
+				//session is dead, start new
+				icloud.jar = null;
+				icloud.jar = request.jar();
 
-			icloud.checkSession(function(err, res, body) {
-				if (err) {
-					//session is dead, start new
-					icloud.jar = null;
-					icloud.jar = request.jar();
-
-					icloud.login(function(err, res, body) {
-						return callback(err, res, body);
-					});
-				} else {
-					console.log("reusing session");
+				icloud.login(function(err, res, body) {
+					fileStore.flush();
 					return callback(err, res, body);
-				}
-			});
-		}
+				});
+			} else {
+				console.log("reusing session");
+				return callback(err, res, body);
+			}
+		});
 	},
-	login: function(callback) {
 
+	login: function(callback) {
 		var options = {
 			url: "https://setup.icloud.com/setup/ws/1/login",
 			json: {
@@ -57,7 +53,6 @@ var icloud = {
 		};
 
 		icloud.iRequest.post(options, function(error, response, body) {
-
 			if (!response || response.statusCode != 200) {
 				return callback("Login Error");
 			}
@@ -65,11 +60,10 @@ var icloud = {
 			icloud.onLogin(body, function(err, resp, body) {
 				return callback(err, resp, body);
 			});
-
 		});
 	},
-	checkSession: function(callback) {
 
+	checkSession: function(callback) {
 		var options = {
 			url: "https://setup.icloud.com/setup/ws/1/validate",
 		};
@@ -83,9 +77,9 @@ var icloud = {
 			icloud.onLogin(JSON.parse(body), function(err, resp, body) {
 				return callback(err, resp, body);
 			});
-
 		});
 	},
+
 	onLogin: function(body, callback) {
 		if (body.hasOwnProperty("webservices") && body.webservices.hasOwnProperty("findme")) {
 			icloud.base_path = body.webservices.findme.url;
@@ -109,9 +103,9 @@ var icloud = {
 			return callback("cannot parse webservice findme url");
 		}
 	},
+
 	getDevices: function(callback) {
 		icloud.init(function(error, response, body) {
-
 			if (!response || response.statusCode != 200) {
 				return callback(error);
 			}
@@ -136,6 +130,7 @@ var icloud = {
 			callback(error, devices);
 		});
 	},
+
 	alertDevice: function(deviceId, callback) {
 		var options = {
 			url: icloud.base_path + "/fmipservice/client/web/playSound",
@@ -146,6 +141,7 @@ var icloud = {
 		};
 		icloud.iRequest.post(options, callback);
 	},
+
 	getLocationOfDevice: function(device, callback) {
 		if (!device.location) {
 			return callback("No location in device");
@@ -174,11 +170,10 @@ var icloud = {
 			}
 			return callback(err);
 		});
-
 	},
+
 	getDistanceOfDevice: function(device, myLatitude, myLongitude, callback) {
 		if (device.location) {
-
 			var googleUrl = "http://maps.googleapis.com/maps/api/distancematrix/json" +
 				"?origins=%d,%d&destinations=%d,%d&mode=driving&sensor=false";
 
