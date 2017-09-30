@@ -12,7 +12,7 @@ var icloud = {
 			return callback("Please define apple_id / password");
 		}
 
-		var fileStore = new FileCookieStore('cookies.json', {
+		var fileStore = new FileCookieStore(__dirname + '/cookies.json', {
 			encrypt: true,
 			algorithm: 'aes-256-ctr'
 		});
