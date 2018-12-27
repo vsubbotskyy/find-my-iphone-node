@@ -24,12 +24,18 @@ var icloud = {
 				"Origin": "https://www.icloud.com"
 			}
 		});
-
+		
 		icloud.checkSession(function(err, res, body) {
 			if (err) {
 				//session is dead, start new
 				icloud.jar = null;
 				icloud.jar = request.jar();
+				icloud.iRequest = request.defaults({
+					jar: icloud.jar,
+					headers: {
+						"Origin": "https://www.icloud.com"
+					}
+				});
 
 				icloud.login(function(err, res, body) {
 					fileStore.flush();
@@ -98,7 +104,19 @@ var icloud = {
 				}
 			};
 
-			icloud.iRequest.post(options, callback);
+			
+			//icloud.iRequest.post(options, callback);
+			icloud.iRequest.post(options, function(error,response,body){
+				if (!body)
+					return callback("empty response");
+
+				if (body.hasOwnProperty("status") && (body.status == "not allowed")) {
+                                        return callback("not allowed to connect with provided credentials");
+                                }
+				else {
+					callback(error,response,body);
+				}
+                        });
 		} else {
 			return callback("cannot parse webservice findme url");
 		}
