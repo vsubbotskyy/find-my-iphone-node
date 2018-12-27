@@ -1,6 +1,6 @@
 {
   "name": "find-my-iphone-node",
-  "version": "2.0.1",
+  "version": "2.2.0",
   "description": "This is a node-red node to get the current locations and other metrics of connected Apple devices",
   "main": "find-my-iphone.js",
   "repository": {
