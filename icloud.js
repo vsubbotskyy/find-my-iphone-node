@@ -1,44 +1,39 @@
 var request = require("request");
 var util = require("util");
-var FileCookieStore = require("./fileCookieStore");
+var tough = require('tough-cookie');
+var Store = tough.MemoryCookieStore;
 
-var icloud = {
-	init: function(callback) {
-		if (!icloud.hasOwnProperty("apple_id") || !icloud.hasOwnProperty("password")) {
+class iCloud {
+	constructor(apple_id, password) {
+		this.apple_id = apple_id;
+		this.password = password;
+		this.jar = request.jar(new Store());
+	}
+
+	init(callback) {
+		if (this.apple_id == null || this.password == null) {
 			return callback("Please define apple_id / password");
 		}
 
-		if (icloud.apple_id == null || icloud.password == null) {
-			return callback("Please define apple_id / password");
-		}
-
-		var fileStore = new FileCookieStore(__dirname + '/cookies.json', {
-			encrypt: true,
-			algorithm: 'aes-256-ctr'
-		});
-		icloud.jar = request.jar(fileStore);
-
-		icloud.iRequest = request.defaults({
-			jar: icloud.jar,
+		this.iRequest = request.defaults({
+			jar: this.jar,
 			headers: {
 				"Origin": "https://www.icloud.com"
 			}
 		});
 		
-		icloud.checkSession(function(err, res, body) {
+		var self = this;
+		this.checkSession(function(err, res, body) {
 			if (err) {
 				//session is dead, start new
-				icloud.jar = null;
-				icloud.jar = request.jar();
-				icloud.iRequest = request.defaults({
-					jar: icloud.jar,
+				self.iRequest = request.defaults({
+					jar: self.jar,
 					headers: {
 						"Origin": "https://www.icloud.com"
 					}
 				});
 
-				icloud.login(function(err, res, body) {
-					fileStore.flush();
+				self.login(function(err, res, body) {
 					return callback(err, res, body);
 				});
 			} else {
@@ -46,52 +41,54 @@ var icloud = {
 				return callback(err, res, body);
 			}
 		});
-	},
+	}
 
-	login: function(callback) {
+	login(callback) {
 		var options = {
 			url: "https://setup.icloud.com/setup/ws/1/login",
 			json: {
-				"apple_id": icloud.apple_id,
-				"password": icloud.password,
+				"apple_id": this.apple_id,
+				"password": this.password,
 				"extended_login": true
 			}
 		};
 
-		icloud.iRequest.post(options, function(error, response, body) {
+		var self = this;
+		this.iRequest.post(options, function(error, response, body) {
 			if (!response || response.statusCode != 200) {
 				return callback("Login Error");
 			}
 
-			icloud.onLogin(body, function(err, resp, body) {
+			self.onLogin(body, function(err, resp, body) {
 				return callback(err, resp, body);
 			});
 		});
-	},
+	}
 
-	checkSession: function(callback) {
+	checkSession(callback) {
 		var options = {
 			url: "https://setup.icloud.com/setup/ws/1/validate",
 		};
 
-		icloud.iRequest.post(options, function(error, response, body) {
+		var self = this;
+		this.iRequest.post(options, function(error, response, body) {
 
 			if (!response || response.statusCode != 200) {
 				return callback("Could not refresh session");
 			}
 
-			icloud.onLogin(JSON.parse(body), function(err, resp, body) {
+			self.onLogin(JSON.parse(body), function(err, resp, body) {
 				return callback(err, resp, body);
 			});
 		});
-	},
+	}
 
-	onLogin: function(body, callback) {
+	onLogin(body, callback) {
 		if (body.hasOwnProperty("webservices") && body.webservices.hasOwnProperty("findme")) {
-			icloud.base_path = body.webservices.findme.url;
+			this.base_path = body.webservices.findme.url;
 
-			options = {
-				url: icloud.base_path + "/fmipservice/client/web/initClient",
+			var options = {
+				url: this.base_path + "/fmipservice/client/web/initClient",
 				json: {
 					"clientContext": {
 						"appName": "iCloud Find (Web)",
@@ -105,8 +102,8 @@ var icloud = {
 			};
 
 			
-			//icloud.iRequest.post(options, callback);
-			icloud.iRequest.post(options, function(error,response,body){
+			//this.iRequest.post(options, callback);
+			this.iRequest.post(options, function(error,response,body){
 				if (!body)
 					return callback("empty response");
 
@@ -120,10 +117,10 @@ var icloud = {
 		} else {
 			return callback("cannot parse webservice findme url");
 		}
-	},
+	}
 
-	getDevices: function(callback) {
-		icloud.init(function(error, response, body) {
+	getDevices(callback) {
+		this.init(function(error, response, body) {
 			if (!response || response.statusCode != 200) {
 				return callback(error);
 			}
@@ -148,20 +145,20 @@ var icloud = {
 
 			callback(error, devices);
 		});
-	},
+	}
 
-	alertDevice: function(deviceId, callback) {
+	alertDevice(deviceId, callback) {
 		var options = {
-			url: icloud.base_path + "/fmipservice/client/web/playSound",
+			url: this.base_path + "/fmipservice/client/web/playSound",
 			json: {
 				"subject": "Amazon Echo Find My iPhone Alert",
 				"device": deviceId
 			}
 		};
-		icloud.iRequest.post(options, callback);
-	},
+		this.iRequest.post(options, callback);
+	}
 
-	getLocationOfDevice: function(device, callback) {
+	getLocationOfDevice(device, callback) {
 		if (!device.location) {
 			return callback("No location in device");
 		}
@@ -189,9 +186,9 @@ var icloud = {
 			}
 			return callback(err);
 		});
-	},
+	}
 
-	getDistanceOfDevice: function(device, myLatitude, myLongitude, callback) {
+	getDistanceOfDevice(device, myLatitude, myLongitude, callback) {
 		if (device.location) {
 			var googleUrl = "http://maps.googleapis.com/maps/api/distancematrix/json" +
 				"?origins=%d,%d&destinations=%d,%d&mode=driving&sensor=false";
@@ -218,6 +215,8 @@ var icloud = {
 			callback("No location found for this device");
 		}
 	}
-};
+}
 
-module.exports = icloud;
+module.exports = {
+	iCloud: iCloud
+};
