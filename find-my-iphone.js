@@ -1,18 +1,18 @@
-var icloud = require('./icloud');
+var iclouds = require('./icloud');
+var iCloud = iclouds.iCloud;
 
 module.exports = function (RED) {
   function FindMyIphone(config) {
     RED.nodes.createNode(this, config);
     var node = this;
     var device;
-    icloud.apple_id = this.credentials.username
-    icloud.password = this.credentials.password
+    this.icloud = new iCloud(this.credentials.username, this.credentials.password);
     this.devicename = config.devicename;
-    findMyPhone = icloud.findmyphone;
+    findMyPhone = this.icloud.findmyphone;
 
     this.on('input', function (msg) {
       node.status({fill: "yellow", shape: "ring", text: "getting device data..."});
-      icloud.getDevices(function (err, devices) {
+      node.icloud.getDevices(function (err, devices) {
         var error = false;
 	// failed to get device information
         if (err) {
@@ -44,9 +44,11 @@ module.exports = function (RED) {
 		}
 	});
 	
-	icloud.alertDevice(device.id, function(err) {
-		node.log("Device found: " + device.name);
-	});
+	if (device) {
+		node.icloud.alertDevice(device.id, function(err) {
+			node.log("Device found: " + device.name);
+		});
+	}
         
 	// send all devices to the same output: [[msg, msg]]
         node.send([devices.map(function (device) {
